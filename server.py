@@ -32,7 +32,6 @@ from calamity_ai.scoring import score_calamities
 from calamity_ai.context import get_environmental_context, environmental_context_to_dict
 from calamity_ai.copernicus import get_copernicus_summary, copernicus_to_dict
 from calamity_ai.forecast import get_open_meteo_predictions, predictions_to_dict
-from calamity_ai.zones import get_zone_analysis, zone_analysis_to_dict
 from calamity_ai.sensors import summarize_sensors
 from calamity_ai.resources import ensure_resources, resource_summary_to_dict
 app = Flask(__name__)
@@ -549,20 +548,7 @@ def weather_risk():
         # 3. Scoring calamități
         calamities = score_calamities(features, calamity_config.thresholds, context=context)
 
-        # 4. Zone analysis
-        zone_analysis = None
-        if context and not skip_zones:
-            try:
-                zone_analysis = get_zone_analysis(
-                    calamity_config,
-                    features=features,
-                    calamities=calamities,
-                    context=context,
-                )
-            except Exception as z_err:
-                logger.warning("Zone analysis failed: %s", z_err)
-
-        # 5. Predicții multi-day
+        # 4. Predicții multi-day
         predictions = None
         if context and not skip_predictions:
             try:
@@ -572,7 +558,7 @@ def weather_risk():
             except Exception as p_err:
                 logger.warning("Predictions failed: %s", p_err)
 
-        # 6. Copernicus satellite
+        # 5. Copernicus satellite
         copernicus = None
         if not skip_copernicus:
             try:
@@ -580,7 +566,7 @@ def weather_risk():
             except Exception as c_err:
                 logger.warning("Copernicus failed: %s", c_err)
 
-        # 7. Sensors health
+        # 6. Sensors health
         sensors = summarize_sensors(
             _SENSORS_PATH,
             now=now,
@@ -606,8 +592,6 @@ def weather_risk():
             report["copernicus"] = copernicus_to_dict(copernicus)
         if context:
             report["context"] = environmental_context_to_dict(context)
-        if zone_analysis:
-            report["zone_analysis"] = zone_analysis_to_dict(zone_analysis)
         if predictions:
             report["predictions"] = predictions_to_dict(predictions)
 
