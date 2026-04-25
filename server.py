@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from sentinelhub import (
     SHConfig, SentinelHubRequest, DataCollection,
-    MimeType, BBox, CRS, MosaickingOrder
+    MimeType, BBox, CRS, MosaickingOrder, SentinelHubSession
 )
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -43,9 +43,17 @@ logger = logging.getLogger(__name__)
 # SH_SECRET = "WKsvWEGUHnaJp6qKsFEtkAOGNs6GWVGz"
 
 config = SHConfig()
+config.sh_client_id = "sh-8b9a2d2e-d1e4-471e-8c68-4a44cd350168"
+config.sh_client_secret = "w0FSkHHf1h7HBCSnGj84BWfAFSkDPfd2"
 
-config.sh_client_id = "sh-eb7762f1-3c97-47f4-95f0-d7be910e7d9a"
-config.sh_client_secret = "WKsvWEGUHnaJp6qKsFEtkAOGNs6GWVGz"
+# ADAUGĂ ACESTE LINII PENTRU TEST:
+try:
+    # Încercăm să creăm o sesiune oficială - asta va verifica cheile la server
+    session = SentinelHubSession(config=config)
+    token = session.token # Asta forțează cererea de autentificare
+    print(f"[SUCCESS] AUTENTIFICARE REUSITA! Token-ul expira in: {session.token_expiration}")
+except Exception as e:
+    print(f"[ERROR] EROARE CONEXIUNE: Sentinel Hub a zis: {e}")
 
 print("ID:", config.sh_client_id)
 print("SECRET:", config.sh_client_secret)
