@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 # 🤖 CASSINI-AI INTEGRATION
 # ============================
 # Adaugă calea către cassini-ai pentru import
-_AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cassini-ai", "Apa")
+_AI_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cassini-ai")
 sys.path.insert(0, _AI_DIR)
 
 from calamity_ai.config import load_config as load_calamity_config
