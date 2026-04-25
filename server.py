@@ -16,6 +16,8 @@ import threading
 import urllib.request
 import urllib.error
 from datetime import datetime, timedelta, timezone
+import subprocess
+import re  # Added for cleaning output
 
 # ============================
 # 🤖 CASSINI-AI INTEGRATION
@@ -663,6 +665,61 @@ def health():
         "cassini_ai_loaded": calamity_config is not None,
         "cassini_ai_area": calamity_config.area_name if calamity_config else None
     })
+@app.route("/hourly-monitor", methods=["POST"])
+def hourly_monitor():
+    """
+    Rulează scriptul hourly_monitor cu bbox-ul specificat.
+    Utilizează AI pentru analiză orară.
+    
+    JSON input:
+    {
+        "bbox": [min_lon, min_lat, max_lon, max_lat]
+    }
+    """
+    data = request.json
+    bbox = data.get("bbox")
+    
+    if not bbox or len(bbox) != 4:
+        return jsonify({
+            "error": "bbox must be a list of 4 coordinates [min_lon, min_lat, max_lon, max_lat]"
+        }), 400
+    
+    try:
+        cmd = [
+            "python", "hourly_monitor.py",
+            "--bbox", str(bbox[0]), str(bbox[1]), str(bbox[2]), str(bbox[3])
+        ]
+        
+        cassini_ai_dir = os.path.join(os.path.dirname(__file__), "cassini-ai")
+        
+        # Use check=False to manually handle the error code
+        result = subprocess.run(cmd, capture_output=True, text=True, cwd=cassini_ai_dir)
+        
+        if result.returncode != 0:
+            return jsonify({
+                "status": "error",
+                "message": "Script execution failed",
+                "details": result.stderr.strip()
+            }), 500
+
+        # Citește dashboard.json generat de script
+        dashboard_path = os.path.join(cassini_ai_dir, "out", "site", "dashboard.json")
+        if not os.path.exists(dashboard_path):
+            return jsonify({"error": "Dashboard file not found after script execution"}), 500
+        
+        with open(dashboard_path, "r", encoding="utf-8") as f:
+            dashboard_data = json.load(f)
+        
+        # Returnează conținutul dashboard.json
+        return jsonify(dashboard_data)
+
+    except json.JSONDecodeError as e:
+        logger.error(f"Invalid JSON in dashboard.json: {e}")
+        return jsonify({"error": "Invalid JSON in dashboard file"}), 500
+    except Exception as e:
+        logger.error(f"Error in hourly-monitor: {e}")
+        return jsonify({"error": str(e)}), 500
+        
 # =========================
 # 🚀 RUN
 # =========================
@@ -671,3 +728,7 @@ if __name__ == "__main__":
         logger.warning("⚠️  Setează variabilele SH_CLIENT_ID și SH_CLIENT_SECRET!")
     
     app.run(debug=True, host="0.0.0.0", port=5000)
+
+# =========================
+# 🕐 HOURLY MONITOR
+# =========================
